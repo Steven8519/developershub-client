@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+spec:
+  selector:
+    matchLabels:
+      app: client
+  replicas: 1
+  template: # template for the pods
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: developershub-client
+          image: steven8519/developershub-client:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: developershub-client
+spec:
+  selector:
+    app: client
+
+  ports:
+    - name: http
+      port: 80
+      nodePort: 30080
+
+  type: LoadBalancer
