@@ -1,29 +1,31 @@
-# STAGE 1 - build the react app
-# set the base image to build from
-# This is the application image from which all other subsequent
-# applications run. Alpine Linux is a security-oriented, lightweight #(~5Mb) Linux distribution.
-FROM node:alpine as build
+# base image
+FROM node:12
+
 # set working directory
-# this is the working folder in the container from which the app.   # will be running from
-WORKDIR /app
-# add the node_modules folder to $PATH
+WORKDIR /app/
+
+# add `/app/node_modules/.bin` to $PATH
 ENV PATH /app/node_modules/.bin:$PATH
-# copy package.json file to /app directory for installation prep
-COPY ./package.json /app/
-# install dependencies
-RUN yarn --silent
-# copy everything to /app directory
-COPY . /app
-# build the app
+
+# Install nginx
+RUN apt-get update
+RUN apt-get install nginx -y
+COPY nginx.conf /etc/nginx/sites-available/default
+RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
+
+
+# install and cache app dependencies
+COPY ./ /app/
+RUN yarn install
+RUN ls
+RUN yarn
 RUN yarn build
-# STAGE 2 - build the final image using a nginx web server
-# distribution and copy the react build files
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-# needed this to make React Router work properly
-RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx/nginx.conf /etc/nginx/conf.d
-# Expose port 80 for HTTP Traffic
+RUN cp -R build/* /var/www/html/
+
+# forward request and error logs to docker log collector
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+	&& ln -sf /dev/stderr /var/log/nginx/error.log
+
 EXPOSE 80
-# start the nginx web server
-CMD ["nginx", "-g", "daemon off;"]
+# start app
+CMD ["nginx"]
