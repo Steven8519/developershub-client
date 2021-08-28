@@ -56,6 +56,16 @@ describe('UserSignupPage', () => {
             };
         };
 
+        const mockAsyncDelayed = () => {
+            return jest.fn().mockImplementation(() => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve({});
+                    }, 300)
+                })
+            })
+        }
+
         let button, displayNameInput, usernameInput, passwordInput, passwordRepeat;
 
         const setupForSubmit = (props) => {
@@ -141,9 +151,31 @@ describe('UserSignupPage', () => {
                 displayName: 'my-display-name',
                 password: 'P4ssword'
             }
-
-
             expect(actions.postSignup).toHaveBeenCalledWith(expectedUserObject);
+        });
+
+        it('does not allow user to click the Sign Up button when there is an ongoing api call',  () => {
+            const actions = {
+                postSignup: mockAsyncDelayed()
+            }
+            setupForSubmit({ actions })
+            fireEvent.click(button);
+
+            fireEvent.click(button);
+            expect(actions.postSignup).toHaveBeenCalledTimes(1);
+        });
+
+        it('displays spinner when there is an ongoing api call',  () => {
+            const actions = {
+                postSignup: mockAsyncDelayed()
+            };
+            const { queryByText } = setupForSubmit({ actions })
+            fireEvent.click(button);
+
+           const spinner = queryByText('Loading...')
+            expect(spinner).toBeInTheDocument();
         });
     });
 });
+
+console.error = () => {};
